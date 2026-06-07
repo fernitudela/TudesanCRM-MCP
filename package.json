@@ -1,0 +1,15 @@
+{
+  "name": "tudesancrm-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local MCP server exposing TudesanCRM-Cloud (operations, clients, documents) to Claude — read + preview/confirm writes. Auth via Cloudflare Access JWT from cloudflared.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "zod": "^3.25.0"
+  }
+}
