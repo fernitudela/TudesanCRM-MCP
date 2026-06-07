@@ -1,9 +1,9 @@
 # TudesanCRM-Cloud — MCP local
 
-Servidor MCP que deja a Claude **leer y editar** tu CRM en la nube
+Servidor MCP que deja a Claude **leer y editar** TudesanCRM en la nube
 (operaciones, clientes, documentos, histórico, bancos, simulaciones, préstamos,
 inmuebles) llamando a la API REST del Worker. Corre **en local**; lo lanza
-Claude Code/Desktop como subproceso.
+Claude Code/Desktop como subproceso o el agente correspondiente.
 
 La mayoría de tools son de solo lectura. Las 11 tools de escritura
 (`create_client`, `update_client`, `update_operation`, `create_operation_update`,
@@ -14,7 +14,7 @@ diff (o lo que se insertaría) y NO escribe; solo `confirm: true` aplica el
 cambio. Esto se suma al *permission prompt* que Claude Code muestra antes de
 cada llamada de tool.
 
-> Pensado para uso personal en tu propio equipo (Claude Code / Claude Desktop).
+> Pensado para uso personal en el propio equipo del usuario (Claude Code / Claude Desktop).
 > **No** sirve para Claude.ai ni Cowork (corren en la nube y no pueden lanzar un
 > proceso local ni usar tu sesión de `cloudflared`); para eso haría falta una
 > variante remota del MCP dentro del Worker, no incluida aquí.
