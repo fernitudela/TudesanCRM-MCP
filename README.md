@@ -136,6 +136,33 @@ Access, repite el paso 3.
 
 ---
 
+## (Opcional) Skill "Expediente Hipotecario"
+
+El repo incluye, en [`skills/expediente-hipotecario/`](skills/), una **skill**
+de Claude Code que genera expedientes hipotecarios para el banco usando los
+adjuntos del cliente (leídos vía este MCP) como única fuente de la verdad. Es
+independiente del MCP pero lo necesita: el MCP aporta los datos, la skill los
+redacta.
+
+Para tener **la misma experiencia** (la skill se auto-activa sola al pedir un
+expediente), instálala en tu Claude personal. Lo más fácil: abre Claude Code en
+este repo y pídeselo —
+
+> «Instala la skill de expediente hipotecario de este repo.»
+
+o ejecuta el script:
+
+```powershell
+pwsh ./skills/install-skill.ps1   # Windows
+```
+```bash
+bash ./skills/install-skill.sh    # macOS / Linux
+```
+
+Detalles y copia manual en [`skills/README.md`](skills/README.md).
+
+---
+
 ## Variables de entorno (todas opcionales)
 
 | Var | Default | Para qué |
