@@ -12,10 +12,11 @@
 // Access validates it and injects `Cf-Access-Authenticated-User-Email`, so the
 // Worker resolves you as admin and the RBAC layer returns everything.
 //
-// Most tools are GET-only. The write tools (create_client, update_client,
-// update_operation, create_operation_update, edit_operation_update, create_bank,
-// update_bank, update_operation_bank, create_loan, create_inmueble,
-// create_simulation) follow a two-step
+// Most tools are GET-only (including list_doc_templates, which reads the org's
+// configured HTML document templates). The write tools (create_client,
+// update_client, update_operation, create_operation_update, edit_operation_update,
+// create_bank, update_bank, update_operation_bank, create_loan, create_inmueble,
+// create_simulation, upsert_doc_template) follow a two-step
 // preview/confirm pattern: called without `confirm: true` they return the
 // diff that WOULD be applied and write nothing; only `confirm: true` actually
 // hits the Worker. This is on top of Claude Code's per-call permission prompt.
@@ -1114,6 +1115,66 @@ server.tool(
     if (!op) throw new Error(`Operación ${operationId} no encontrada${error ? ` (${error})` : ''}. No se crea nada.`);
     const result = await apiSend('POST', '/api/inmuebles', entry);
     return jsonResult({ mode: 'applied', resource: label, created: result });
+  })
+);
+
+// --- Plantillas de documentos (Ajustes → Plantillas) ------------------------
+// Una plantilla HTML por tipo de documento y empresa (contrato, protección de
+// datos…). El registro de tipos vive en el código del Worker
+// (shared/docTemplates.ts); estas keys son su espejo.
+const DOC_TEMPLATE_KEYS = ['contrato', 'proteccion_datos'];
+
+server.tool(
+  'list_doc_templates',
+  'Lista las plantillas de documentos configuradas de la empresa activa (una por tipo: contrato, protección de datos…). Devuelve { key, body (HTML completo), updatedAt }. Úsalo para LEER el HTML actual antes de editarlo con upsert_doc_template, o para reutilizar una sección (p. ej. extraer la cláusula de protección de datos del contrato).',
+  {},
+  tool(async () => jsonResult(await apiJson('/api/doc-templates')))
+);
+
+server.tool(
+  'upsert_doc_template',
+  'Crea o reemplaza la plantilla HTML de un tipo de documento de la empresa activa (equivale a Ajustes → Plantillas de documentos). Patrón en DOS pasos: SIN `confirm` devuelve una PREVIEW (si ya existe: longitud actual vs propuesta + un extracto del cuerpo propuesto), sin escribir nada; con `confirm: true` aplica (PUT). El cuerpo es HTML completo y puede usar %placeholders% (p. ej. %InfoTitulares%, %Direccion%, %Honorarios%, %Fecha%). El Worker valida que estén los placeholders OBLIGATORIOS del tipo y rechaza un cuerpo vacío; reemplaza por completo el cuerpo anterior. Solo admin.',
+  {
+    key: z
+      .enum(DOC_TEMPLATE_KEYS)
+      .describe('Tipo de documento. Debe existir en el registro del código (shared/docTemplates.ts).'),
+    body: z.string().describe('Cuerpo HTML completo de la plantilla (reemplaza al anterior).'),
+    confirm: z
+      .boolean()
+      .optional()
+      .describe('Sin este flag (o `false`) la llamada es PREVIEW y no escribe. Pásalo `true` para aplicar.'),
+  },
+  { destructiveHint: true, idempotentHint: false, openWorldHint: false },
+  tool(async ({ key, body, confirm }) => {
+    const proposed = String(body ?? '').trim();
+    if (!proposed) throw new Error('`body` está vacío: la plantilla no puede quedar vacía.');
+    const existing = (await apiJson('/api/doc-templates')).find((t) => t.key === key) || null;
+    const label = `doc_template "${key}"`;
+    const excerpt = (s) =>
+      s.length > 600 ? `${s.slice(0, 600)}… (+${s.length - 600} caracteres)` : s;
+
+    if (!confirm) {
+      return jsonResult({
+        mode: 'preview',
+        resource: label,
+        exists: !!existing,
+        currentLength: existing ? existing.body.length : 0,
+        proposedLength: proposed.length,
+        proposedExcerpt: excerpt(proposed),
+        instructions: existing
+          ? `Esto REEMPLAZA por completo la plantilla actual de "${key}". ${PREVIEW_HINT}`
+          : PREVIEW_HINT,
+      });
+    }
+    const result = await apiSend('PUT', `/api/doc-templates/${encodeURIComponent(key)}`, {
+      body: proposed,
+    });
+    return jsonResult({
+      mode: 'applied',
+      resource: label,
+      appliedLength: proposed.length,
+      result: { key: result?.key, updatedAt: result?.updatedAt },
+    });
   })
 );
 

@@ -5,10 +5,10 @@ Servidor MCP que deja a Claude **leer y editar** TudesanCRM en la nube
 inmuebles) llamando a la API REST del Worker. Corre **en local**; lo lanza
 Claude Code/Desktop como subproceso o el agente correspondiente.
 
-La mayoría de tools son de solo lectura. Las 11 tools de escritura
+La mayoría de tools son de solo lectura. Las 12 tools de escritura
 (`create_client`, `update_client`, `update_operation`, `create_operation_update`,
 `edit_operation_update`, `create_bank`, `update_bank`, `update_operation_bank`,
-`create_loan`, `create_inmueble`, `create_simulation`) usan un patrón
+`create_loan`, `create_inmueble`, `create_simulation`, `upsert_doc_template`) usan un patrón
 **preview / confirm** en dos pasos: sin `confirm: true` la llamada muestra el
 diff (o lo que se insertaría) y NO escribe; solo `confirm: true` aplica el
 cambio. Esto se suma al *permission prompt* que Claude Code muestra antes de
@@ -174,9 +174,9 @@ Detalles y copia manual en [`skills/README.md`](skills/README.md).
 
 ---
 
-## Tools (27)
+## Tools (29)
 
-### Lectura (16)
+### Lectura (17)
 
 | Tool | Qué devuelve |
 |---|---|
@@ -196,8 +196,9 @@ Detalles y copia manual en [`skills/README.md`](skills/README.md).
 | `list_loans` | Préstamos de los titulares (con `clientIds`). |
 | `list_inmuebles` | Inmuebles en propiedad de los titulares. |
 | `list_banks` | Catálogo de bancos (contactos y condiciones). |
+| `list_doc_templates` | Plantillas HTML de documentos configuradas (una por tipo: `contrato`, `proteccion_datos`…), con su `body` y `updatedAt`. |
 
-### Escritura (11, patrón preview / confirm)
+### Escritura (12, patrón preview / confirm)
 
 Cada una se llama **dos veces**: la primera sin `confirm` para ver qué pasaría
 (NO escribe), la segunda con `confirm: true` para aplicar.
@@ -215,6 +216,7 @@ Cada una se llama **dos veces**: la primera sin `confirm` para ver qué pasaría
 | `create_loan` | Crea un préstamo existente de los titulares. Requeridos `operationId` y `cuota`; opcionales `importePendiente`, `anosRestantes`, `descripcion` y `clientIds` (array de IDs de titular a los que se asigna). |
 | `create_inmueble` | Crea un inmueble en propiedad de los titulares (`descripcion` libre). Requeridos `operationId` y `descripcion`. |
 | `create_simulation` | Crea una simulación de financiación; el Worker recalcula y guarda el `snapshot` automáticamente. Requerido `operationId`. |
+| `upsert_doc_template` | Crea o reemplaza la plantilla HTML de un tipo de documento (`contrato`, `proteccion_datos`…). El preview muestra longitud actual vs propuesta y un extracto; reemplaza el cuerpo entero. El Worker valida los `%placeholders%` obligatorios. Solo admin. |
 
 **Campos editables** (mirror exacto de los `UPDATABLE*` del Worker — sync
 manual; si el Worker añade un campo nuevo, hay que añadirlo también en
