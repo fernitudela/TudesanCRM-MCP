@@ -225,7 +225,7 @@ manual; si el Worker añade un campo nuevo, hay que añadirlo también en
 - `update_client` → `operationId`, `isTitularPrincipal`, `isAvalista`,
   `nombre`, `dni`, `fechaNacimiento`, `estadoCivil`, `telefono`, `email`,
   `direccionActual`, `regimenViviendaActual`, `profesion`, `empresa`,
-  `tipoContrato`, `fechaAltaEmpresa`, `antiguedadMeses`, `salarioNeto`,
+  `tipoContrato`, `fechaAltaEmpresa`, `salarioNeto`,
   `numPagas`, `otrosIngresos`, `otrosIngresosDescripcion`, `deudasMensuales`,
   `otrosPrestamosDetalle`, `notas`.
 - `update_operation` → `tipo`, `estado`, `titulo`, `valorCompraventa`,

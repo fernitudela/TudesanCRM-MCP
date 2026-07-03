@@ -216,7 +216,6 @@ const CLIENT_FIELDS = new Set([
   'empresa',
   'tipoContrato',
   'fechaAltaEmpresa',
-  'antiguedadMeses',
   'salarioNeto',
   'numPagas',
   'otrosIngresos',
