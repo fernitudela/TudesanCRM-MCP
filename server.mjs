@@ -208,6 +208,7 @@ const CLIENT_FIELDS = new Set([
   'dni',
   'fechaNacimiento',
   'estadoCivil',
+  'regimenEconomico',
   'telefono',
   'email',
   'direccionActual',
@@ -363,7 +364,8 @@ async function resolveOperation(operationId) {
 
 // Factory for create tools that take a camelCase `fields` record. Validates it
 // against allowed/required, checks the parent operation exists, and POSTs to
-// `path` on confirm. (create_inmueble is bespoke — too few fields to bother.)
+// `path` on confirm. (The {operationId, descripcion} tools use
+// makeDescripcionCreateTool instead — too few fields to bother.)
 function makeCreateTool({ allowed, required, path }) {
   return tool(async ({ fields, confirm }) => {
     const { entry, unknown, missing } = buildCreateEntry(fields, allowed, required);
@@ -395,6 +397,30 @@ function makeCreateTool({ allowed, required, path }) {
     if (unknown.length) throw new Error(`Hay campos desconocidos: ${unknown.join(', ')}. No se crea nada.`);
     if (missing.length) throw new Error(`Faltan campos requeridos: ${missing.join(', ')}. No se crea nada.`);
     if (!op) throw new Error(`Operación ${entry.operationId} no encontrada${error ? ` (${error})` : ''}. No se crea nada.`);
+    const result = await apiSend('POST', path, entry);
+    return jsonResult({ mode: 'applied', resource: label, created: result });
+  });
+}
+
+// Factory for the create tools whose payload is just {operationId, descripcion}
+// (inmuebles, solicitudes de documentación): validates the parent operation and
+// POSTs to `path` on confirm.
+function makeDescripcionCreateTool(path) {
+  return tool(async ({ operationId, descripcion, confirm }) => {
+    const { op, label, error } = await resolveOperation(operationId);
+    const entry = { operationId, descripcion: descripcion.trim() };
+    if (!confirm) {
+      return jsonResult({
+        mode: 'preview',
+        resource: label,
+        operationExists: !!op,
+        wouldInsert: entry,
+        instructions: !op
+          ? `Operación ${operationId} no encontrada${error ? ` (${error})` : ''}. Corrige operationId antes de aplicar. ${PREVIEW_HINT}`
+          : PREVIEW_HINT,
+      });
+    }
+    if (!op) throw new Error(`Operación ${operationId} no encontrada${error ? ` (${error})` : ''}. No se crea nada.`);
     const result = await apiSend('POST', path, entry);
     return jsonResult({ mode: 'applied', resource: label, created: result });
   });
@@ -1097,24 +1123,19 @@ server.tool(
     confirm: z.boolean().optional(),
   },
   { destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  tool(async ({ operationId, descripcion, confirm }) => {
-    const { op, label, error } = await resolveOperation(operationId);
-    const entry = { operationId, descripcion: descripcion.trim() };
-    if (!confirm) {
-      return jsonResult({
-        mode: 'preview',
-        resource: label,
-        operationExists: !!op,
-        wouldInsert: entry,
-        instructions: !op
-          ? `Operación ${operationId} no encontrada${error ? ` (${error})` : ''}. Corrige operationId antes de aplicar. ${PREVIEW_HINT}`
-          : PREVIEW_HINT,
-      });
-    }
-    if (!op) throw new Error(`Operación ${operationId} no encontrada${error ? ` (${error})` : ''}. No se crea nada.`);
-    const result = await apiSend('POST', '/api/inmuebles', entry);
-    return jsonResult({ mode: 'applied', resource: label, created: result });
-  })
+  makeDescripcionCreateTool('/api/inmuebles')
+);
+
+server.tool(
+  'create_document_request',
+  'Crea una solicitud de documentación en el checklist de una operación (lo que el cliente ve como documento pendiente de subir en el portal). Patrón preview/confirm. Requeridos: operationId, descripcion. Nace pendiente (fulfilled=false) y pasa a cumplida cuando se enlaza al menos un documento subido.',
+  {
+    operationId: z.number().int().positive().describe('ID de la operación.'),
+    descripcion: z.string().min(1, 'descripcion es obligatoria').describe('Qué documento se pide (p. ej. "Certificado de empadronamiento histórico — Dayana").'),
+    confirm: z.boolean().optional(),
+  },
+  { destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  makeDescripcionCreateTool('/api/document-requests')
 );
 
 // --- Plantillas de documentos (Ajustes → Plantillas) ------------------------
