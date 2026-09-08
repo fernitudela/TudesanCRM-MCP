@@ -27,12 +27,14 @@ cada llamada de tool.
 El Worker está detrás de **Cloudflare Access**. Este servidor obtiene un JWT de
 Access efímero ejecutando `cloudflared access token`, que reutiliza la sesión
 SSO de Google que estableces **una vez por máquina** con `cloudflared access
-login`. Cloudflare valida el JWT, inyecta tu email y el Worker te resuelve como
-**admin** → ves todo.
+login`. Cloudflare valida el JWT, inyecta tu email y el Worker te resuelve con
+**tu usuario y tu rol** (admin/gestor/colaborador de tu empresa): ves exactamente
+lo mismo que en la web del CRM, ni más ni menos.
 
 Consecuencia: **no hay ninguna credencial en este código ni en el repo**. Para
 usarlo en un ordenador nuevo solo necesitas que tu email esté en la allowlist de
-Access (ya lo está: `fernitudela@gmail.com`) y hacer el login una vez.
+Access del Worker (el mismo permiso con el que entras a la web; lo gestiona el
+dueño de la plataforma) y hacer el login una vez.
 
 ---
 
@@ -64,14 +66,15 @@ hacer `npm install` en cada máquina.
 ### 3. Login de Cloudflare Access (una vez por máquina, caduca ~24 h)
 
 ```bash
-cloudflared access login https://tudesancrm-cloud.fernitudela.workers.dev
+cloudflared access login <URL-del-CRM>
+# ejemplo (TUDESAN): cloudflared access login https://tudesancrm-cloud.fernitudela.workers.dev
 ```
 
 Se abre el navegador para el SSO de Google. Cuando la sesión caduque (~24 h) y
 una tool falle con un mensaje de Access, repite **solo** este comando.
 
 > En la terminal de Claude Code puedes lanzarlo con el prefijo `!`:
-> `! cloudflared access login https://tudesancrm-cloud.fernitudela.workers.dev`
+> `! cloudflared access login <URL-del-CRM>`
 
 ### 4. Averigua la ruta absoluta de `server.mjs` (y de `cloudflared`)
 
@@ -98,8 +101,14 @@ which cloudflared
 ```bash
 claude mcp add tudesancrm-cloud -s user \
   -e CLOUDFLARED_PATH=<ruta-a-cloudflared> \
+  -e TUDESAN_BASE_URL=<URL-del-CRM> \
+  -e TUDESAN_ORG_ID=<id-de-tu-empresa> \
   -- node <ruta-absoluta-a>/server.mjs
 ```
+
+`TUDESAN_BASE_URL` solo hace falta si tu CRM no es el default (TUDESAN);
+`TUDESAN_ORG_ID` solo si perteneces a varias empresas (ver «Conecta a TU
+empresa» más abajo).
 
 Ejemplo en Windows:
 
@@ -131,9 +140,26 @@ claude mcp add tudesancrm-cloud -s user ^
 
 ### 6. Verificar
 
-Reinicia Claude Code/Desktop y usa la tool **`whoami`**: debe responder
-`role: admin` y tu email con `source: access`. Si responde con un mensaje de
-Access, repite el paso 3.
+Reinicia Claude Code/Desktop y usa la tool **`whoami`**: debe responder tu email
+con `source: access` y tu rol en la empresa activa. Si responde con un mensaje
+de Access, repite el paso 3.
+
+---
+
+## Conecta a TU empresa (multi-empresa)
+
+El CRM es multi-empresa: **la URL del Worker es la misma para todas** y lo que
+determina qué ves es tu usuario (email + membership). Si perteneces a **una sola
+empresa no tienes que hacer nada** — el backend la usa por defecto.
+
+Si perteneces a varias:
+
+- Fija la empresa activa por defecto con la variable `TUDESAN_ORG_ID` (el id te
+  lo da el dueño de la plataforma, o lo ves en la respuesta de `whoami`), o
+- cámbiala en caliente durante una conversación con la tool **`select_company`**.
+
+El backend valida SIEMPRE tu membership: pedir una empresa a la que no
+perteneces devuelve 403.
 
 ---
 
@@ -171,17 +197,19 @@ Detalles y copia manual en [`skills/README.md`](skills/README.md).
 | `TUDESAN_BASE_URL` | `https://tudesancrm-cloud.fernitudela.workers.dev` | Origen de la API del Worker |
 | `TUDESAN_APP_URL` | = `TUDESAN_BASE_URL` | App de Access para `cloudflared` |
 | `CLOUDFLARED_PATH` | `cloudflared` (busca en PATH) | Ruta absoluta al binario `cloudflared` |
+| `TUDESAN_ORG_ID` | *(vacía)* | Empresa activa por defecto (multi-empresa). Si se omite y perteneces a varias, el backend usa la primera; cámbiala en caliente con `select_company`. |
 | `TUDESAN_MAX_FILE_MB` | `25` | Tamaño máx. de adjunto que se carga en contexto |
 
 ---
 
-## Tools (30)
+## Tools (31)
 
-### Lectura (17)
+### Lectura y sesión (18)
 
 | Tool | Qué devuelve |
 |---|---|
-| `whoami` | Identidad y rol con que accede el MCP (debe ser admin). |
+| `whoami` | Identidad, rol y empresas del usuario con que accede el MCP. |
+| `select_company` | Cambia la empresa activa de la sesión MCP (multi-empresa). |
 | `health` | Comprueba que el Worker está vivo (no requiere sesión). |
 | `list_operations` | Operaciones; filtros `estado` y/o `q` (texto libre). |
 | `get_operation` | Una operación completa por id (incluye importes/honorarios). |
@@ -283,7 +311,7 @@ update_client({ id: 97, fields: { nombre: "Marta Peñalver Mas", fechaNacimiento
 |---|---|
 | Una tool da error de Access o "redirección a login" | Sesión SSO caducada (~24 h). Repite el paso 3. |
 | `ENOENT` / "cloudflared falló" pero sí hiciste login | `cloudflared` no está en el PATH del proceso de Claude. Pasa `CLOUDFLARED_PATH` con la ruta absoluta (paso 5). |
-| `whoami` no responde admin | Tu email no está en la allowlist de Access, o estás logueado con otra cuenta Google. |
+| `whoami` no responde tu usuario/rol | Tu email no está en la allowlist de Access, no tiene membership en ninguna empresa del CRM, o estás logueado con otra cuenta Google. |
 | Cambios en `server.mjs` no se ven | Reinicia Claude Code/Desktop (el MCP se lanza al arrancar). |
 | Adjunto Word/Excel no se lee | Por diseño: `read_document_file` solo interpreta PDF e imágenes. Conviértelo a PDF o usa `get_document` para los metadatos. |
 
