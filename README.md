@@ -22,6 +22,21 @@ cada llamada de tool.
 
 ---
 
+## Instalación rápida con el kit (recomendada para usuarios nuevos)
+
+Si te han pasado el **zip `tudesancrm-mcp-kit-vX.Y.Z.zip`**, no necesitas clonar
+este repo ni `npm install`: descomprímelo, abre Claude Code en esa carpeta y
+pídele «Conecta Claude con el CRM de Tudesan usando este kit, con mi cuenta».
+El kit lleva el servidor empaquetado en un solo archivo, instaladores no
+interactivos (`setup.ps1` / `setup.sh` / `instalar.cmd`), un `CLAUDE.md` con el
+runbook que sigue tu Claude y las skills. Detalles en
+[`kit/LEEME.md`](kit/LEEME.md); cómo generarlo y repartirlo, en
+[`DISTRIBUCION.md`](DISTRIBUCION.md) (`npm run build:kit` → `dist/`).
+
+El resto de este README describe la instalación **manual desde el repo**.
+
+---
+
 ## Cómo se autentica (sin secretos en el repo)
 
 El Worker está detrás de **Cloudflare Access**. Este servidor obtiene un JWT de
