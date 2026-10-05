@@ -327,7 +327,7 @@ if ($doDesktop) {
 # ----------------------------------------------------------------------------
 # 6. Skills
 # ----------------------------------------------------------------------------
-Step '6/6 Skills de Claude (expediente, CEE, tasacion)'
+Step '6/6 Skills de Claude (expediente, CEE, tasacion, asesor)'
 if ($SkipSkills) { Info 'Omitido (-SkipSkills).' }
 else {
   $skillsRoot = Join-Path $InstallDir 'skills'

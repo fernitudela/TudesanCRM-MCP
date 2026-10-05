@@ -255,7 +255,7 @@ fi
 # ----------------------------------------------------------------------------
 # 6. Skills
 # ----------------------------------------------------------------------------
-step "6/6 Skills de Claude (expediente, CEE, tasacion)"
+step "6/6 Skills de Claude (expediente, CEE, tasacion, asesor)"
 if [[ $SKIP_SKILLS -eq 1 ]]; then info "Omitido (--skip-skills)."
 else
   mkdir -p "$HOME/.claude/skills"

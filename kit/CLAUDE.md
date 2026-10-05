@@ -18,7 +18,7 @@ aquí.
 | `setup.ps1` | Instalador para **Windows**. Hace TODO el proceso. |
 | `setup.sh` | Instalador para **macOS / Linux**. Hace TODO el proceso. |
 | `instalar.cmd` | Doble clic en Windows = `setup.ps1` (para humanos sin Claude). |
-| `skills/` | Skills opcionales (expediente hipotecario, CEE, tasación) que usan el MCP. |
+| `skills/` | Skills opcionales (expediente hipotecario, CEE, tasación, asesor hipotecario) que usan el MCP. |
 | `LEEME.md` | Guía corta para el usuario humano. |
 
 ## Cómo funciona la autenticación (para que puedas explicarlo)
@@ -143,7 +143,7 @@ como *Connected*; si no, repite el Paso 1.
   ejecutar el mismo instalador. Sustituye los archivos y re-registra. No hay
   nada más que hacer.
 - Para **desinstalar**: `claude mcp remove -s user tudesancrm-cloud`, borrar la
-  carpeta estable y, si lo quiere, `~/.claude/skills/{expediente-hipotecario,cee,tasacion}`.
+  carpeta estable y, si lo quiere, `~/.claude/skills/{expediente-hipotecario,cee,tasacion,asesor-hipotecario}`.
   La sesión de Access vive en `~/.cloudflared/` y caduca sola.
 
 ## Qué puede hacer el usuario cuando esté conectado (para orientarle)
@@ -154,4 +154,4 @@ inmuebles y plantillas, y 13 tools de escritura con patrón **preview →
 confirm** (nunca escriben sin una segunda llamada con `confirm: true`). No puede
 crear ni borrar operaciones ni borrar nada. Siempre ve exactamente lo que su
 rol le permite ver en la web. Las skills instaladas se activan solas al pedir
-«prepara el expediente de…», «¿vale este CEE?» o «pide tasación para…».
+«prepara el expediente de…», «¿vale este CEE?», «pide tasación para…» o «¿qué banco le va bien a…?».

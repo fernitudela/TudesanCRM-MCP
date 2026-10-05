@@ -430,12 +430,12 @@ function makeDescripcionCreateTool(path) {
 
 const server = new McpServer({
   name: 'tudesancrm-cloud',
-  version: '0.2.0',
+  version: '0.3.0',
 });
 
 server.tool(
   'whoami',
-  'Devuelve la identidad, la empresa activa (activeOrg) y las empresas a las que perteneces (orgs[]) con tu rol en cada una. Útil para verificar la sesión de Cloudflare Access y saber con qué empresa estás operando (multi-empresa). Usa select_company para cambiarla.',
+  'Devuelve la identidad, la empresa activa (activeOrg: id, nombre, slug y brandColor = color corporativo #rrggbb configurado en Ajustes → Marca, para generar documentos con la marca de la empresa) y las empresas a las que perteneces (orgs[]) con tu rol en cada una. Útil para verificar la sesión de Cloudflare Access y saber con qué empresa estás operando (multi-empresa). Usa select_company para cambiarla.',
   {},
   tool(async () => jsonResult(await apiJson('/api/me')))
 );

@@ -178,13 +178,16 @@ perteneces devuelve 403.
 
 ---
 
-## (Opcional) Skill "Expediente Hipotecario"
+## (Opcional) Skills: expediente, CEE, tasación y asesor hipotecario
 
-El repo incluye, en [`skills/expediente-hipotecario/`](skills/), una **skill**
-de Claude Code que genera expedientes hipotecarios para el banco usando los
-adjuntos del cliente (leídos vía este MCP) como única fuente de la verdad. Es
-independiente del MCP pero lo necesita: el MCP aporta los datos, la skill los
-redacta.
+El repo incluye, en [`skills/`](skills/), cuatro **skills** de Claude Code que
+usan este MCP: `expediente-hipotecario` (genera el expediente para el banco a
+partir de los adjuntos del cliente), `cee` (comprueba si el certificado
+energético basta para la tasación), `tasacion` (redacta el correo a la
+tasadora) y `asesor-hipotecario` (analiza la viabilidad de un perfil y
+recomienda banco apoyándose en el **historial real** de operaciones con cada
+banco y en el catálogo del CRM). Son independientes del MCP pero lo necesitan:
+el MCP aporta los datos, las skills los trabajan.
 
 Para tener **la misma experiencia** (la skill se auto-activa sola al pedir un
 expediente), instálala en tu Claude personal. Lo más fácil: abre Claude Code en
@@ -223,7 +226,7 @@ Detalles y copia manual en [`skills/README.md`](skills/README.md).
 
 | Tool | Qué devuelve |
 |---|---|
-| `whoami` | Identidad, rol y empresas del usuario con que accede el MCP. |
+| `whoami` | Identidad, rol y empresas del usuario con que accede el MCP; `activeOrg.brandColor` = color corporativo de la empresa activa (Ajustes → Marca), que usa la skill de expedientes. |
 | `select_company` | Cambia la empresa activa de la sesión MCP (multi-empresa). |
 | `health` | Comprueba que el Worker está vivo (no requiere sesión). |
 | `list_operations` | Operaciones; filtros `estado` y/o `q` (texto libre). |

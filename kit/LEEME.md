@@ -56,7 +56,7 @@ Después, reinicia Claude Code / Claude Desktop.
 | El servidor MCP (un archivo) y este kit | Windows `%LOCALAPPDATA%\TudesanCRM-MCP`; macOS/Linux `~/.tudesancrm-mcp` |
 | `cloudflared` (si no lo tenías) | subcarpeta `bin/` de la anterior |
 | Registro del MCP `tudesancrm-cloud` | Claude Code (ámbito usuario) y/o Claude Desktop |
-| Skills (expediente, CEE, tasación) | `~/.claude/skills/` |
+| Skills (expediente, CEE, tasación, asesor hipotecario) | `~/.claude/skills/` |
 
 Puedes borrar el zip y la carpeta descomprimida cuando termine.
 

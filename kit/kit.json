@@ -1,8 +1,8 @@
 {
   "name": "tudesancrm-mcp-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "builtAt": "",
   "mcpName": "tudesancrm-cloud",
   "crmUrl": "https://tudesancrm-cloud.fernitudela.workers.dev",
-  "skills": ["expediente-hipotecario", "cee", "tasacion"]
+  "skills": ["expediente-hipotecario", "cee", "tasacion", "asesor-hipotecario"]
 }

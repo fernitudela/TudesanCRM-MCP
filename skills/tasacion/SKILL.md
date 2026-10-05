@@ -1,6 +1,6 @@
 ---
 name: tasacion
-description: "Usa esta skill para redactar el correo de solicitud de tasación de una operación hipotecaria. Actívala siempre que el usuario mencione: pedir tasación, solicitar tasación, correo para tasar, email a la tasadora, 'necesito tasar la operación de [cliente]', o similar. Localiza la operación en el CRM (MCP 'tudesancrm-cloud'), reúne los datos y adjuntos necesarios (cliente+DNI, inmueble, banco, importe mínimo, referencia catastral, contacto para la visita) y genera el correo listo para copiar/enviar, avisando de qué adjuntos hay que anexar y cuáles faltan. Solo lectura en el CRM; pregunta lo que no pueda verificar."
+description: "Usa esta skill para redactar el correo de solicitud de tasación de una operación hipotecaria. Actívala siempre que el usuario mencione: pedir tasación, solicitar tasación, correo para tasar, email a la tasadora, 'necesito tasar la operación de [cliente]', o similar. Localiza la operación en el CRM (MCP 'tudesancrm-cloud'), reúne los datos y adjuntos necesarios (cliente+DNI, inmueble, banco, importe mínimo, referencia catastral, contacto para la visita) y genera el correo como archivo HTML (abierto en el navegador para copiarlo conservando el formato), avisando de qué adjuntos hay que anexar y cuáles faltan. Solo lectura en el CRM; pregunta lo que no pueda verificar."
 ---
 
 # Skill: Correo de solicitud de tasación
@@ -89,11 +89,14 @@ Reglas de redacción:
 - No dejar placeholders sin resolver en el correo final: o el dato está, o se ha preguntado, o se marca explícitamente como pendiente ANTES del correo (nunca dentro).
 - Solo el **titular principal** con su DNI, aunque la operación tenga más titulares (la tasación y la factura van a un único nombre).
 
-## Paso 5 — Entrega
+## Paso 5 — Entrega (SIEMPRE en HTML, para copiar con formato)
 
-1. Correo completo en el chat, listo para copiar y pegar.
-2. Debajo, **lista de adjuntos a anexar** (con el nombre del archivo tal como está en el CRM, para localizarlos rápido) y avisos de lo que falte.
-3. **NUNCA crear borradores ni enviar por Gmail**: Fernando no usa Gmail para su actividad profesional de broker. La entrega es siempre el texto en el chat, listo para copiar; él lo envía desde su correo profesional. No ofrecer Gmail como opción.
+Fernando pega el correo en su cliente de correo profesional y necesita que **se conserve el formato** (negritas, saltos de línea, párrafos). El texto plano del chat pierde los saltos al pegarlo, así que la entrega es un **archivo HTML** que se abre en el navegador y se copia desde ahí:
+
+1. **Escribir el correo como HTML** en `~/.local/bin/correos/tasacion-<cliente>-<calle>.html` (carpeta fija; crearla si no existe). Estructura: un `<div>` con estilos inline (`font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1f2933; line-height: 1.5; max-width: 720px`), un `<p style="margin:0 0 12pt 0">` por bloque del formato del Paso 4 y `<br>` para los saltos dentro de un bloque. Estilos SOLO inline (nada de `<style>` ni clases: los clientes de correo los descartan). En negrita (`<strong>`): banco, dirección, referencia catastral, valor mínimo y nombre del titular. Sin `<h1>`, tablas ni imágenes. Ejemplo de referencia: `~/.local/bin/correos/tasacion-samuel-ester-sagunto3.html`.
+2. **Abrirlo en el navegador** con PowerShell: `Start-Process "<ruta del .html>"`. Fernando hace Ctrl+A / Ctrl+C en la página y Ctrl+V en el cuerpo del correo: el formato se mantiene.
+3. En el chat: la ruta del archivo, el **asunto sugerido** y el correo también en texto plano (por si quiere retocarlo a mano), seguido de la **lista de adjuntos a anexar** (con el nombre del archivo tal como está en el CRM, para localizarlos rápido) y los avisos de lo que falte.
+4. **NUNCA crear borradores ni enviar por Gmail**: Fernando no usa Gmail para su actividad profesional de broker. Él lo envía desde su correo profesional. No ofrecer Gmail como opción.
 
 ## Reglas
 

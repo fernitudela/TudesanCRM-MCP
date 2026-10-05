@@ -12,6 +12,7 @@ Todas leen datos vía las tools del MCP (algunas también escriben, ver tabla).
 | `expediente-hipotecario` | Genera expedientes hipotecarios para el banco a partir de los adjuntos del cliente | solo lectura |
 | `cee` | Comprueba si el Certificado de Eficiencia Energética de un cliente basta para la tasación | solo lectura |
 | `tasacion` | Redacta el correo de solicitud de tasación de una operación | solo lectura |
+| `asesor-hipotecario` | Analiza la viabilidad de un perfil, simula cuota/ratio y recomienda banco a partir del **historial real** de operaciones con cada banco (`list_operation_banks`) y del catálogo (`list_banks`) | solo lectura (anotar en la cronología solo si el usuario lo pide, con preview/confirm) |
 
 ---
 
@@ -45,8 +46,9 @@ Añade `-Force` / `--force` para sobrescribir una instalación previa.
 ### C) Copia manual
 
 Copia la carpeta de la skill (`skills/expediente-hipotecario/` con su
-subcarpeta `scripts/`, o `skills/cee/` / `skills/tasacion/`, que son solo
-`SKILL.md`) a `~/.claude/skills/<nombre>/`. En Windows, `~` es `%USERPROFILE%`.
+subcarpeta `scripts/`, o `skills/cee/` / `skills/tasacion/` /
+`skills/asesor-hipotecario/`, que son solo `SKILL.md`) a
+`~/.claude/skills/<nombre>/`. En Windows, `~` es `%USERPROFILE%`.
 
 Tras cualquiera de las tres, **reinicia Claude Code/Desktop** para que la cargue.
 Verifica con `/<nombre-skill>` o pidiendo una tarea de prueba.
