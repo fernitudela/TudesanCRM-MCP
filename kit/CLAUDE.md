@@ -148,8 +148,8 @@ como *Connected*; si no, repite el Paso 1.
 
 ## Qué puede hacer el usuario cuando esté conectado (para orientarle)
 
-El MCP expone 31 tools sobre el CRM: lectura de operaciones, titulares,
-adjuntos (PDF e imágenes), histórico, bancos, simulaciones, préstamos,
+El MCP expone 32 tools sobre el CRM: lectura de operaciones, titulares,
+adjuntos (PDF e imágenes), histórico, bancos (catálogo e historial global), simulaciones, préstamos,
 inmuebles y plantillas, y 13 tools de escritura con patrón **preview →
 confirm** (nunca escriben sin una segunda llamada con `confirm: true`). No puede
 crear ni borrar operaciones ni borrar nada. Siempre ve exactamente lo que su

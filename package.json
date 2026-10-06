@@ -1,6 +1,6 @@
 {
   "name": "tudesancrm-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Local MCP server exposing TudesanCRM-Cloud (operations, clients, documents) to Claude — read + preview/confirm writes. Auth via Cloudflare Access JWT from cloudflared.",

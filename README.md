@@ -243,6 +243,7 @@ Detalles y copia manual en [`skills/README.md`](skills/README.md).
 | `list_loans` | Préstamos de los titulares (con `clientIds`). |
 | `list_inmuebles` | Inmuebles en propiedad de los titulares. |
 | `list_banks` | Catálogo de bancos (contactos y condiciones). |
+| `bank_history` | Historial global de bancos en una llamada (`GET /api/bank-history`): todos los vínculos operación-banco visibles con el contexto de su operación + `summary` por banco (aprobadas, denegadas, ofertas, tipo/LTV típicos, días de respuesta, perfiles aceptados). Filtros `bankId`, `bank`, `estado`, `since`, `limit`. Lo usa la skill `asesor-hipotecario`. |
 | `list_doc_templates` | Plantillas HTML de documentos configuradas (una por tipo: `contrato`, `proteccion_datos`…), con su `body` y `updatedAt`. |
 
 ### Escritura (13, patrón preview / confirm)

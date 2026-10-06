@@ -430,7 +430,7 @@ function makeDescripcionCreateTool(path) {
 
 const server = new McpServer({
   name: 'tudesancrm-cloud',
-  version: '0.3.0',
+  version: '0.3.1',
 });
 
 server.tool(
@@ -643,6 +643,26 @@ server.tool(
   'Lista el catálogo de bancos (contactos y condiciones actuales).',
   {},
   tool(async () => jsonResult(await apiJson('/api/banks')))
+);
+
+server.tool(
+  'bank_history',
+  'Historial GLOBAL de bancos de la empresa activa en UNA llamada: qué ha hecho cada banco en las operaciones visibles (todos los vínculos operación-banco con el contexto de su operación: título, estado, tipo, fechas, valor y % solicitado, perfil de contrato de los titulares) más un `summary` por banco (total, porEstado, conOferta, aprobadas, contraofertas, denegadas, último envío/respuesta, tipo bonificado min/medio/max, % financiación max/medio, comisión media, días de respuesta medios, perfilesAceptados, operationIds). Cada fila trae `tieneOferta` (tipo o % rellenos, aunque el estado siga en "enviado"), `diasRespuesta` y `cuentaComoAprobada` (estado aprobado, o oferta en una operación aprobada/firmada/cobrada). Úsala para recomendar banco por experiencia real antes que por el catálogo. Filtros opcionales: bankId, bank (nombre, subcadena), estado del vínculo, since (YYYY-MM-DD, por fecha de envío) y limit (500 por defecto, máx. 2000). Solo lectura. Si el CRM responde 404, el Worker es anterior a esta tool: recorre list_operations + list_operation_banks por operación.',
+  {
+    bankId: z.number().int().positive().optional().describe('Solo este banco (id de list_banks).'),
+    bank: z.string().optional().describe('Nombre del banco (subcadena, sin distinguir mayúsculas), p.ej. "sabadell".'),
+    estado: z
+      .enum(['no_enviado', 'enviado', 'en_estudio', 'contraoferta', 'aprobado', 'denegado', 'retirado'])
+      .optional()
+      .describe('Solo vínculos en este estado.'),
+    since: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .describe('Solo vínculos enviados (o creados) a partir de esta fecha, YYYY-MM-DD. P.ej. los últimos 12 meses.'),
+    limit: z.number().int().positive().max(2000).optional().describe('Máximo de filas (defecto 500).'),
+  },
+  tool(async (args) => jsonResult(await apiJson('/api/bank-history', args)))
 );
 
 // --- Write tools (preview / confirm) ----------------------------------------
