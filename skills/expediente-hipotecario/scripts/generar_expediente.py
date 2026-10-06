@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generador de expedientes hipotecarios — Tudesan
+Generador de expedientes hipotecarios (color corporativo por empresa)
 Uso: python generar_expediente.py datos.json
      python generar_expediente.py --json '{"titulo": ...}'
 """
@@ -28,6 +28,29 @@ def euros(valor):
 def porcentaje(valor):
     """Formatea como 18.31%"""
     return f"{valor:.2f}%"
+
+
+# ── Color corporativo ────────────────────────────────────────────────────────
+# Cada empresa tiene su color en el CRM (Ajustes → Marca); el MCP lo devuelve en
+# whoami → activeOrg.brandColor y la skill lo pasa en datos["color_corporativo"].
+# Sin color (o inválido) se usa el azul histórico de los expedientes.
+
+DEFAULT_BRAND_COLOR = "0B3D91"
+
+def color_hex(valor):
+    """'#0b3d91' / '0B3D91' → '0B3D91' (6 hex, mayúsculas); inválido → default."""
+    s = str(valor or "").strip().lstrip("#")
+    if len(s) == 6 and all(ch in "0123456789abcdefABCDEF" for ch in s):
+        return s.upper()
+    return DEFAULT_BRAND_COLOR
+
+def color_rgb(hex6):
+    return RGBColor(int(hex6[0:2], 16), int(hex6[2:4], 16), int(hex6[4:6], 16))
+
+def color_tint(hex6, factor=0.88):
+    """Mezcla el color con blanco (factor = proporción de blanco) → fondo suave."""
+    chans = [int(hex6[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join(f"{round(c + (255 - c) * factor):02X}" for c in chans)
 
 
 # ── Cálculo de viabilidad ────────────────────────────────────────────────────
@@ -110,13 +133,15 @@ def generar_expediente(datos: dict) -> Document:
     titulo = datos.get('titulo', 'Hipoteca')
     destinatario = datos.get('destinatario', '')
     titulares = datos.get('titulares', [])
+    brand = color_hex(datos.get('color_corporativo'))
+    brand_rgb = color_rgb(brand)
 
     # ── TÍTULO ───────────────────────────────────────────────────────────────
     h = doc.add_heading(titulo, level=1)
     h.runs[0].font.name = 'Arial'
     h.runs[0].font.size = Pt(20)
-    h.runs[0].font.color.rgb = RGBColor(0, 0, 0)
-    set_paragraph_border_bottom(h, color="BBBBBB", size=8)
+    h.runs[0].font.color.rgb = brand_rgb
+    set_paragraph_border_bottom(h, color=brand, size=8)
     doc.add_paragraph()
 
     # ── INTRO DE LA OPERACIÓN ────────────────────────────────────────────────
@@ -189,6 +214,7 @@ def generar_expediente(datos: dict) -> Document:
     run_se.bold = True
     run_se.font.name = 'Arial'
     run_se.font.size = Pt(11)
+    run_se.font.color.rgb = brand_rgb
     p_se.paragraph_format.space_after = Pt(6)
 
     sit_eco = datos.get('situacion_economica', '')
@@ -212,6 +238,7 @@ def generar_expediente(datos: dict) -> Document:
     run_v.bold = True
     run_v.font.name = 'Arial'
     run_v.font.size = Pt(11)
+    run_v.font.color.rgb = brand_rgb
 
     consideraciones = viab.get('consideraciones', '')
     if consideraciones:
@@ -255,8 +282,8 @@ def generar_expediente(datos: dict) -> Document:
         for cell in col.cells:
             cell.width = col_widths[i]
 
-    HEADER_FILL = "D6E4F0"   # azul grisáceo cabecera
-    HIGHLIGHT_FILL = "F2F2F2"  # gris claro para filas importantes
+    # Filas importantes: fondo suave derivado del color corporativo.
+    HIGHLIGHT_FILL = color_tint(brand)
 
     for tipo, dato, valor in filas:
         row = table.add_row()
@@ -327,6 +354,7 @@ def generar_expediente(datos: dict) -> Document:
     run_fab.bold = True
     run_fab.font.name = 'Arial'
     run_fab.font.size = Pt(11)
+    run_fab.font.color.rgb = brand_rgb
     p_fab.paragraph_format.space_after = Pt(4)
 
     favorable = datos.get('favorable_en_base_a', [])
@@ -351,7 +379,7 @@ def generar_expediente(datos: dict) -> Document:
 
     # ── CIERRE ───────────────────────────────────────────────────────────────
     # No se añade firma: el .docx se adjunta a un correo cuyo cliente ya pone
-    # la firma de Fernando automáticamente. Evita firma duplicada.
+    # la firma del remitente automáticamente. Evita firma duplicada.
     doc.add_paragraph()
     p_saludo = doc.add_paragraph('Un saludo, muchas gracias.')
     p_saludo.runs[0].font.name = 'Arial'

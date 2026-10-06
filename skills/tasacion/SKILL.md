@@ -5,11 +5,11 @@ description: "Usa esta skill para redactar el correo de solicitud de tasación d
 
 # Skill: Correo de solicitud de tasación
 
-Redacta el correo con el que Fernando (broker de TUDESAN) solicita una tasación a la tasadora, a partir de una operación del CRM. El correo debe salir **completo a la primera**: con todos los datos que la tasadora necesita y la lista de adjuntos que Fernando debe anexar al enviarlo.
+Redacta el correo con el que el usuario (el broker hipotecario, o alguien de su equipo) solicita una tasación a la tasadora, a partir de una operación del CRM. El correo debe salir **completo a la primera**: con todos los datos que la tasadora necesita y la lista de adjuntos que el usuario debe anexar al enviarlo.
 
 ## Paso 1 — Localizar la operación y los datos
 
-Acceso vía MCP `tudesancrm-cloud` (**solo lectura**; si falla por sesión Cloudflare Access caducada, pedir a Fernando: `cloudflared access login https://tudesancrm-cloud.fernitudela.workers.dev` y reintentar):
+Acceso vía MCP `tudesancrm-cloud` (**solo lectura**; si falla por sesión Cloudflare Access caducada, pedir al usuario: `cloudflared access login https://tudesancrm-cloud.fernitudela.workers.dev` y reintentar):
 
 - `list_operations` (q=nombre del cliente) → si hay varias candidatas, `AskUserQuestion`, no asumir.
 - `get_operation` → dirección del inmueble, valor de compraventa, banco(s), notas.
@@ -22,13 +22,13 @@ Contraste de datos: los datos que van al correo deben salir de los adjuntos o de
 
 ## Paso 2 — Checklist de datos del correo
 
-Obligatorios. **Regla de oro: ante la duda, se pregunta.** Si un dato falta O es ambiguo O el CRM da un valor que no es inequívoco (p. ej. varios bancos en la operación, o no está claro si el importe mínimo es el valor de compraventa), preguntar a Fernando con `AskUserQuestion` — él facilitará el dato. Agrupar todas las preguntas en una sola llamada, ofreciendo como opciones los valores candidatos encontrados en el CRM (con "Other" siempre disponible para que escriba otro):
+Obligatorios. **Regla de oro: ante la duda, se pregunta.** Si un dato falta O es ambiguo O el CRM da un valor que no es inequívoco (p. ej. varios bancos en la operación, o no está claro si el importe mínimo es el valor de compraventa), preguntar al usuario con `AskUserQuestion` — él facilitará el dato. Agrupar todas las preguntas en una sola llamada, ofreciendo como opciones los valores candidatos encontrados en el CRM (con "Other" siempre disponible para que escriba otro):
 
-- [ ] **Titular principal**: nombre completo + DNI/NIE. ⚠️ En el correo va **SOLO el titular principal, nunca todos los titulares**: la tasación y su factura tienen que ir a un único nombre. Si la operación tiene varios titulares y no está claro cuál es el principal, preguntar a Fernando — no elegir por cuenta propia.
+- [ ] **Titular principal**: nombre completo + DNI/NIE. ⚠️ En el correo va **SOLO el titular principal, nunca todos los titulares**: la tasación y su factura tienen que ir a un único nombre. Si la operación tiene varios titulares y no está claro cuál es el principal, preguntar al usuario — no elegir por cuenta propia.
 - [ ] **Inmueble**: dirección completa con municipio y CP
 - [ ] **Garaje / trastero / ascensor**: indicar SIEMPRE si tiene o no tiene (aunque sea "sin garaje ni trastero"); si tiene garaje como finca independiente, se necesita también su nota simple
 - [ ] **Banco** para el que se tasa — si la operación tiene varios bancos o ninguno claro, preguntar SIEMPRE
-- [ ] **Importe mínimo de valoración** (valor necesario): en la mayoría de los casos es **el valor cuyo 80% da el préstamo que se necesita** → `importe mínimo = préstamo necesario ÷ 0,80`, donde préstamo necesario = valor de compraventa × % de financiación solicitada (datos del CRM: `valorCompraventa`, `financiacionPctSolicitada`). Por eso suele salir POR ENCIMA del valor de compraventa (solo coincide con él cuando se financia exactamente el 80%). Calcular ese candidato y preguntar SIEMPRE a Fernando con `AskUserQuestion` proponiendo como opciones: (a) el importe calculado con la fórmula, (b) el valor de compraventa — salvo que él ya lo haya dicho en la conversación. NUNCA asumirlo en silencio
+- [ ] **Importe mínimo de valoración** (valor necesario): en la mayoría de los casos es **el valor cuyo 80% da el préstamo que se necesita** → `importe mínimo = préstamo necesario ÷ 0,80`, donde préstamo necesario = valor de compraventa × % de financiación solicitada (datos del CRM: `valorCompraventa`, `financiacionPctSolicitada`). Por eso suele salir POR ENCIMA del valor de compraventa (solo coincide con él cuando se financia exactamente el 80%). Calcular ese candidato y preguntar SIEMPRE al usuario con `AskUserQuestion` proponiendo como opciones: (a) el importe calculado con la fórmula, (b) el valor de compraventa — salvo que él ya lo haya dicho en la conversación. NUNCA asumirlo en silencio
 - [ ] **Contacto para la visita** (inmobiliaria o cliente): nombre + teléfono (+ email si se tiene)
 
 Recomendables:
@@ -39,17 +39,17 @@ Recomendables:
 
 ## Paso 3 — Adjuntos
 
-Listar en el correo los adjuntos que Fernando debe anexar, y comprobar contra `list_documents` que existen:
+Listar en el correo los adjuntos que el usuario debe anexar, y comprobar contra `list_documents` que existen:
 
 - DNI del titular principal (solo el suyo)
 - Nota simple de la vivienda (y del garaje si es finca independiente)
 - **Informe completo de CEE** — si hay dudas de si el documento CEE disponible es suficiente, aplicar los criterios de la skill `cee` (informe completo = certificado + Anexos I–IV firmado; la etiqueta sola NO basta)
 
-Si algún adjunto no existe en el CRM ni lo tiene Fernando → avisar claramente ANTES del correo: "Falta X, pídelo a Y antes de enviar" (no bloquear el borrador: entregarlo igualmente marcando el hueco).
+Si algún adjunto no existe en el CRM ni lo tiene el usuario → avisar claramente ANTES del correo: "Falta X, pídelo a Y antes de enviar" (no bloquear el borrador: entregarlo igualmente marcando el hueco).
 
 ## Paso 4 — Redactar el correo
 
-Tono: cercano y directo, como escribe Fernando. **Formato validado por Fernando (07/09/2026) — seguirlo tal cual**, en este orden: banco → inmueble (dirección, características, ref. catastral) → valor → comprador → contacto → adjuntos:
+Tono: cercano y directo, de broker a tasadora. **Formato validado en uso real (07/09/2026) — seguirlo tal cual**, en este orden: banco → inmueble (dirección, características, ref. catastral) → valor → comprador → contacto → adjuntos:
 
 ```
 Buenos días,
@@ -91,15 +91,15 @@ Reglas de redacción:
 
 ## Paso 5 — Entrega (SIEMPRE en HTML, para copiar con formato)
 
-Fernando pega el correo en su cliente de correo profesional y necesita que **se conserve el formato** (negritas, saltos de línea, párrafos). El texto plano del chat pierde los saltos al pegarlo, así que la entrega es un **archivo HTML** que se abre en el navegador y se copia desde ahí:
+El usuario pega el correo en su cliente de correo profesional y necesita que **se conserve el formato** (negritas, saltos de línea, párrafos). El texto plano del chat pierde los saltos al pegarlo, así que la entrega es un **archivo HTML** que se abre en el navegador y se copia desde ahí:
 
-1. **Escribir el correo como HTML** en `~/.local/bin/correos/tasacion-<cliente>-<calle>.html` (carpeta fija; crearla si no existe). Estructura: un `<div>` con estilos inline (`font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1f2933; line-height: 1.5; max-width: 720px`), un `<p style="margin:0 0 12pt 0">` por bloque del formato del Paso 4 y `<br>` para los saltos dentro de un bloque. Estilos SOLO inline (nada de `<style>` ni clases: los clientes de correo los descartan). En negrita (`<strong>`): banco, dirección, referencia catastral, valor mínimo y nombre del titular. Sin `<h1>`, tablas ni imágenes. Ejemplo de referencia: `~/.local/bin/correos/tasacion-samuel-ester-sagunto3.html`.
-2. **Abrirlo en el navegador** con PowerShell: `Start-Process "<ruta del .html>"`. Fernando hace Ctrl+A / Ctrl+C en la página y Ctrl+V en el cuerpo del correo: el formato se mantiene.
+1. **Escribir el correo como HTML** en `~/.local/bin/correos/tasacion-<cliente>-<calle>.html` (carpeta fija; crearla si no existe). Estructura: un `<div>` con estilos inline (`font-family: Calibri, Arial, sans-serif; font-size: 11pt; color: #1f2933; line-height: 1.5; max-width: 720px`), un `<p style="margin:0 0 12pt 0">` por bloque del formato del Paso 4 y `<br>` para los saltos dentro de un bloque. Estilos SOLO inline (nada de `<style>` ni clases: los clientes de correo los descartan). En negrita (`<strong>`): banco, dirección, referencia catastral, valor mínimo y nombre del titular. Sin `<h1>`, tablas ni imágenes.
+2. **Abrirlo en el navegador** con PowerShell: `Start-Process "<ruta del .html>"`. El usuario hace Ctrl+A / Ctrl+C en la página y Ctrl+V en el cuerpo del correo: el formato se mantiene.
 3. En el chat: la ruta del archivo, el **asunto sugerido** y el correo también en texto plano (por si quiere retocarlo a mano), seguido de la **lista de adjuntos a anexar** (con el nombre del archivo tal como está en el CRM, para localizarlos rápido) y los avisos de lo que falte.
-4. **NUNCA crear borradores ni enviar por Gmail**: Fernando no usa Gmail para su actividad profesional de broker. Él lo envía desde su correo profesional. No ofrecer Gmail como opción.
+4. **NUNCA crear borradores ni enviar por Gmail ni por ningún otro cliente de correo**: el usuario lo envía él mismo desde su correo profesional. No ofrecer el envío como opción.
 
 ## Reglas
 
 - **Solo lectura** en el CRM: esta skill no escribe ni modifica nada.
 - Datos dudosos o ausentes → se preguntan, no se inventan (especialmente importe mínimo, banco y contacto de visita).
-- El correo nunca sale con datos que contradigan un adjunto leído; si adjunto y CRM discrepan, manda el adjunto y se avisa a Fernando.
+- El correo nunca sale con datos que contradigan un adjunto leído; si adjunto y CRM discrepan, manda el adjunto y se avisa al usuario.

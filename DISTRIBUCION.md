@@ -17,6 +17,12 @@ Sin estos dos pasos la instalación acaba en `SIN_PERMISO` o `SIN_EMPRESA`.
    (admin / colaborador / referido) y su empresa, desde la administración de
    usuarios del CRM. Si pertenece a varias empresas, dile cuál es su ID por
    defecto (o déjale elegir: el instalador las lista).
+3. **Marca de la empresa** (lo hace el admin de la empresa en «Primeros pasos»
+   → *Logo y color corporativo*, o en Ajustes → General → Marca): la skill de
+   expedientes lee el color corporativo del CRM (`whoami` →
+   `activeOrg.brandColor`) y lo usa en los títulos y filas destacadas del
+   expediente que va al banco. Sin color configurado, los expedientes salen
+   con el azul por defecto (`#0b3d91`).
 
 ## 2. Generar el zip
 

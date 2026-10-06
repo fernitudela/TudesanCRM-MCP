@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Calculadora de viabilidad hipotecaria — Tudesan
+Calculadora de viabilidad hipotecaria
 
 Uso:
   python calcular_viabilidad.py --capital 76000 --tasa 3 --años 30 \

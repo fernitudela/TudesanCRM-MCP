@@ -5,7 +5,7 @@ description: "Usa esta skill para comprobar si la documentación de Certificado 
 
 # Skill: CEE — ¿Es suficiente para la tasación?
 
-Comprueba si el/los documento(s) de Certificado de Eficiencia Energética que tiene Fernando para una operación bastan para lo que pide la tasadora (normalmente el **informe completo de CEE**), y si no, dice exactamente **qué falta y a quién pedírselo**.
+Comprueba si el/los documento(s) de Certificado de Eficiencia Energética que tiene el usuario para una operación bastan para lo que pide la tasadora (normalmente el **informe completo de CEE**), y si no, dice exactamente **qué falta y a quién pedírselo**.
 
 ## Conceptos clave — los 3 documentos del CEE
 
@@ -17,11 +17,11 @@ Del trabajo del técnico certificador salen tres documentos distintos y la gente
 
 ## Paso 1 — Localizar el documento
 
-- **Ruta local dada por Fernando** → leer el PDF directamente con `Read`.
+- **Ruta local dada por el usuario** → leer el PDF directamente con `Read`.
 - **Nombre de cliente/operación** → `list_operations` (q=nombre) para localizar la operación, `list_documents` (operationId) y buscar adjuntos tipo CEE (nombres con "CEE", "certificado", "eficiencia", "energétic", "etiqueta"). Leer con `read_document_file`. Si hay varias operaciones candidatas, preguntar con `AskUserQuestion`, no asumir.
-- Si el MCP falla por sesión de Cloudflare Access caducada, pedir a Fernando que ejecute:
+- Si el MCP falla por sesión de Cloudflare Access caducada, pedir al usuario que ejecute:
   `cloudflared access login https://tudesancrm-cloud.fernitudela.workers.dev` (sesión ~24 h) y reintentar.
-- **Leer SIEMPRE el documento entero antes de opinar.** No juzgar por el nombre del archivo: un fichero llamado "certificado" puede ser el informe completo (caso real: Sergio Martín) y viceversa.
+- **Leer SIEMPRE el documento entero antes de opinar.** No juzgar por el nombre del archivo: un fichero llamado "certificado" puede ser el informe completo y viceversa.
 
 ## Paso 2 — Checklist de suficiencia
 
@@ -64,4 +64,4 @@ Entregar SIEMPRE en este formato:
 
 - Esta skill es **solo lectura**: no escribe nada en el CRM ni modifica archivos.
 - Lo que no se ha leído no se afirma: el veredicto solo puede basarse en documentos abiertos de verdad.
-- Si falta información para decidir (p. ej. no se sabe qué inmueble es), preguntar a Fernando en vez de suponer.
+- Si falta información para decidir (p. ej. no se sabe qué inmueble es), preguntar al usuario en vez de suponer.
