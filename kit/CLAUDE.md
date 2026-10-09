@@ -159,7 +159,7 @@ rol le permite ver en la web. Las skills instaladas se activan solas al pedir
 **Plazos FEIN (desde v0.4.0).** Cada operación tiene tres fechas: `fechaMaxArras`
 (límite del contrato de arras), `fechaMaxOfertaBancaria` (hasta cuándo el banco
 elegido mantiene las condiciones) y `fechaMaxFein`, que el CRM calcula solo como
-la menor entre la oferta bancaria y las arras − 17 días. El usuario puede pedirte
+la menor entre la oferta bancaria y las arras − 11 días. El usuario puede pedirte
 dos cosas: (a) **comunicarlas** («¿hasta cuándo tengo para la FEIN de…?» →
 `get_operation` y responde con las tres fechas y los días que quedan) y
 (b) **rellenarlas desde la documentación** («saca las fechas del contrato de

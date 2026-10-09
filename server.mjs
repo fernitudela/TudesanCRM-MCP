@@ -486,7 +486,7 @@ server.tool(
   'Devuelve una operación completa por id (incluye importes/honorarios al acceder como admin). ' +
     'Plazos FEIN: `fechaMaxOfertaBancaria` (hasta cuándo el banco elegido mantiene las condiciones), ' +
     '`fechaMaxArras` (límite del contrato de arras) y `fechaMaxFein` (DERIVADA, solo lectura = ' +
-    'min(fechaMaxOfertaBancaria, fechaMaxArras − 17 días); null si faltan las dos). Cuando el usuario ' +
+    'min(fechaMaxOfertaBancaria, fechaMaxArras − 11 días); null si faltan las dos). Cuando el usuario ' +
     'pregunte por plazos o por "hasta cuándo", comunica estas tres fechas y los días que quedan.',
   { id: z.number().int().positive().describe('ID de la operación.') },
   tool(async ({ id }) => jsonResult(await apiJson(`/api/operations/${id}`)))
@@ -746,7 +746,7 @@ server.tool(
     '(fecha límite para firmar la compraventa); `fechaMaxOfertaBancaria` sale de la oferta vinculante / FEIN ' +
     'del banco ELEGIDO (fecha hasta la que mantiene condiciones). Si las lees en un adjunto con read_document_file, ' +
     'propón rellenarlas con este tool citando el documento. `fechaMaxFein` NO se escribe: la calcula el CRM ' +
-    '(min(oferta bancaria, arras − 17 días)). La fecha por banco va en update_operation_bank (`fechaMaxOferta`).',
+    '(min(oferta bancaria, arras − 11 días)). La fecha por banco va en update_operation_bank (`fechaMaxOferta`).',
   {
     id: z.number().int().positive().describe('ID de la operación.'),
     fields: z
