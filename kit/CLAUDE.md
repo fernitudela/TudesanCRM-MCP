@@ -155,3 +155,17 @@ confirm** (nunca escriben sin una segunda llamada con `confirm: true`). No puede
 crear ni borrar operaciones ni borrar nada. Siempre ve exactamente lo que su
 rol le permite ver en la web. Las skills instaladas se activan solas al pedir
 «prepara el expediente de…», «¿vale este CEE?», «pide tasación para…» o «¿qué banco le va bien a…?».
+
+**Plazos FEIN (desde v0.4.0).** Cada operación tiene tres fechas: `fechaMaxArras`
+(límite del contrato de arras), `fechaMaxOfertaBancaria` (hasta cuándo el banco
+elegido mantiene las condiciones) y `fechaMaxFein`, que el CRM calcula solo como
+la menor entre la oferta bancaria y las arras − 17 días. El usuario puede pedirte
+dos cosas: (a) **comunicarlas** («¿hasta cuándo tengo para la FEIN de…?» →
+`get_operation` y responde con las tres fechas y los días que quedan) y
+(b) **rellenarlas desde la documentación** («saca las fechas del contrato de
+arras / de la oferta de X» → `list_documents` + `read_document_file`, localiza la
+fecha en el texto, y propón `update_operation` con `fechaMaxArras` /
+`fechaMaxOfertaBancaria` en formato `YYYY-MM-DD` citando el documento; aplica
+solo tras el `confirm`). La validez de la oferta de cada banco concreto va en
+`update_operation_bank` (`fechaMaxOferta`); al aprobar ese banco, el CRM copia
+la fecha a la operación si allí estaba vacía.

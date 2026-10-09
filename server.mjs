@@ -237,6 +237,10 @@ const OPERATION_FIELDS = new Set([
   'numHijosACargo',
   'fechaInicio',
   'fechaCierre',
+  // Plazos FEIN (ISO YYYY-MM-DD). fechaMaxFein es DERIVADA: la devuelve el
+  // Worker, nunca se escribe.
+  'fechaMaxOfertaBancaria',
+  'fechaMaxArras',
   'folderPath',
   'honorariosInmobiliaria',
   'honorariosInmobiliariaPct',
@@ -256,7 +260,7 @@ const TIMELINE_FIELDS = new Set(['texto', 'fecha', 'interno', 'expuestoReferido'
 const BANK_FIELDS = new Set(['nombre', 'contactos', 'condicionesActuales', 'notas']);
 //   operationBanks.ts → UPDATABLE (sin operationId/bankId: identifican el vínculo)
 const OPERATION_BANK_FIELDS = new Set([
-  'contactoUsado', 'estado', 'fechaEnvio', 'fechaRespuesta',
+  'contactoUsado', 'estado', 'fechaEnvio', 'fechaRespuesta', 'fechaMaxOferta',
   'tipoBonificado', 'pctFinanciacion', 'comisionApertura', 'bonificaciones', 'notas',
 ]);
 //   loans.ts → UPDATABLE (+ clientIds = titulares asignados, relación N:N)
@@ -479,7 +483,11 @@ server.tool(
 
 server.tool(
   'get_operation',
-  'Devuelve una operación completa por id (incluye importes/honorarios al acceder como admin).',
+  'Devuelve una operación completa por id (incluye importes/honorarios al acceder como admin). ' +
+    'Plazos FEIN: `fechaMaxOfertaBancaria` (hasta cuándo el banco elegido mantiene las condiciones), ' +
+    '`fechaMaxArras` (límite del contrato de arras) y `fechaMaxFein` (DERIVADA, solo lectura = ' +
+    'min(fechaMaxOfertaBancaria, fechaMaxArras − 17 días); null si faltan las dos). Cuando el usuario ' +
+    'pregunte por plazos o por "hasta cuándo", comunica estas tres fechas y los días que quedan.',
   { id: z.number().int().positive().describe('ID de la operación.') },
   tool(async ({ id }) => jsonResult(await apiJson(`/api/operations/${id}`)))
 );
@@ -733,7 +741,12 @@ server.tool(
 
 server.tool(
   'update_operation',
-  'Edita campos de una operación. Mismo patrón preview/confirm que update_client: sin `confirm` muestra el diff; con `confirm: true` aplica. Solo se envían los campos que cambian. Campos desconocidos abortan el confirm.',
+  'Edita campos de una operación. Mismo patrón preview/confirm que update_client: sin `confirm` muestra el diff; con `confirm: true` aplica. Solo se envían los campos que cambian. Campos desconocidos abortan el confirm. ' +
+    'Plazos FEIN (fechas ISO YYYY-MM-DD, null para vaciar): `fechaMaxArras` sale del contrato de arras ' +
+    '(fecha límite para firmar la compraventa); `fechaMaxOfertaBancaria` sale de la oferta vinculante / FEIN ' +
+    'del banco ELEGIDO (fecha hasta la que mantiene condiciones). Si las lees en un adjunto con read_document_file, ' +
+    'propón rellenarlas con este tool citando el documento. `fechaMaxFein` NO se escribe: la calcula el CRM ' +
+    '(min(oferta bancaria, arras − 17 días)). La fecha por banco va en update_operation_bank (`fechaMaxOferta`).',
   {
     id: z.number().int().positive().describe('ID de la operación.'),
     fields: z
@@ -1028,7 +1041,10 @@ server.tool(
 
 server.tool(
   'update_operation_bank',
-  'Edita el registro de un banco vinculado a una operación (operation_banks): estado, contacto usado, fechas y la oferta recibida (tipoBonificado, pctFinanciacion, comisionApertura, bonificaciones, notas). Mismo patrón preview/confirm que update_client. OJO: `id` es el del VÍNCULO operación-banco (operation_banks.id, sale de list_operation_banks), NO el de la operación ni el del banco. No se pueden cambiar operationId ni bankId.',
+  'Edita el registro de un banco vinculado a una operación (operation_banks): estado, contacto usado, fechas y la oferta recibida (tipoBonificado, pctFinanciacion, comisionApertura, bonificaciones, notas). Mismo patrón preview/confirm que update_client. OJO: `id` es el del VÍNCULO operación-banco (operation_banks.id, sale de list_operation_banks), NO el de la operación ni el del banco. No se pueden cambiar operationId ni bankId. ' +
+    '`fechaMaxOferta` (ISO YYYY-MM-DD) = validez de la oferta de ESE banco. Regla del CRM: cuando el vínculo está ' +
+    'en estado `aprobado` y tiene `fechaMaxOferta`, la operación hereda esa fecha como `fechaMaxOfertaBancaria` ' +
+    'solo si allí estaba vacía (nunca pisa una ya escrita).',
   {
     id: z.number().int().positive().describe('ID del vínculo operación-banco (operation_banks.id).'),
     fields: z

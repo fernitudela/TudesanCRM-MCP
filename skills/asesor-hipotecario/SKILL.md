@@ -46,7 +46,7 @@ Si el usuario pertenece a varias empresas, confirma con `whoami` cuál está act
 ### Si el usuario nombra a un cliente / operación
 
 - `list_operations` (q=nombre o dirección) → si hay varias candidatas, pregunta con `AskUserQuestion`, no asumas.
-- `get_operation` → tipo, estado, `valorCompraventa`, `financiacionPctSolicitada`, `ahorrosDisponibles`, `arras`, `numHijosACargo`, dirección, notas.
+- `get_operation` → tipo, estado, `valorCompraventa`, `financiacionPctSolicitada`, `ahorrosDisponibles`, `arras`, `numHijosACargo`, dirección, notas. Plazos: `fechaMaxArras`, `fechaMaxOfertaBancaria` y `fechaMaxFein` (derivada = min(oferta bancaria, arras − 17 días)); si la FEIN vence en pocos días, dilo arriba del todo y prioriza bancos con respuesta rápida (`diasRespuestaMedio` de `bank_history`).
 - `list_clients` (operationId) y `get_client` por titular → `tipoContrato`, `fechaAltaEmpresa`, `profesion`, `empresa`, `salarioNeto`, `numPagas`, `otrosIngresos`, `fechaNacimiento`, `estadoCivil`, `regimenEconomico`, `regimenViviendaActual`, `isAvalista`.
 - `list_loans` (operationId) → deudas mensuales reales (cuota, pendiente, años restantes, a qué titular pertenecen).
 - `list_inmuebles` (operationId) → inmuebles en propiedad (segunda vivienda, cargas).
