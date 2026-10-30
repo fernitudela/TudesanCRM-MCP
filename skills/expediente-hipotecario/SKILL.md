@@ -227,6 +227,10 @@ El MCP **ya puede escribir** el expediente en la operación: `update_operation(i
   - **"Lo reviso y decido luego"** → no se escribe; queda el HTML en el chat.
 - Solo se escribe en el CRM si el usuario elige **sobrescribir**.
 
+### 5a-bis. (Opcional) Registrar el banco en la operación
+
+Si el usuario indica a qué banco y gestor va el expediente y ese banco **no** aparece en `list_operation_banks(operationId)`, ofrécete a registrarlo con `create_operation_bank` (`operationId`, `bankId` de `list_banks`, `contactoUsado` = nombre del gestor, `estado` = `enviado` + `fechaEnvio` = hoy si ya se ha enviado, o `no_enviado` si solo está preparado, y `pctFinanciacion` solicitado). Patrón preview/confirm; **solo con el visto bueno del usuario**: es la única otra escritura permitida en esta skill y no toca ningún dato de origen. Si el banco ya estaba vinculado, usa `update_operation_bank` sobre ese vínculo.
+
 ### 5b. (Opcional) Generar también un .docx
 
 Solo si el usuario lo pide explícitamente (para email, no para el CRM) y hay Python. Usa `scripts/generar_expediente.py` con la estructura JSON clásica:

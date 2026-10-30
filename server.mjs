@@ -15,13 +15,15 @@
 // Most tools are GET-only (including list_doc_templates, which reads the org's
 // configured HTML document templates). The write tools (create_client,
 // update_client, update_operation, create_operation_update, edit_operation_update,
-// create_bank, update_bank, update_operation_bank, create_loan, create_inmueble,
-// create_simulation, upsert_doc_template) follow a two-step
+// create_bank, update_bank, create_operation_bank, update_operation_bank,
+// delete_operation_bank, create_loan, create_inmueble, create_simulation,
+// create_document_request, upsert_doc_template, rename_document) follow a two-step
 // preview/confirm pattern: called without `confirm: true` they return the
 // diff that WOULD be applied and write nothing; only `confirm: true` actually
 // hits the Worker. This is on top of Claude Code's per-call permission prompt.
-// Still intentionally NOT exposed: creating/deleting operations and any DELETE
-// (clients, loans, inmuebles, simulations, banks, documents).
+// Still intentionally NOT exposed: creating/deleting operations and any other
+// DELETE (clients, loans, inmuebles, simulations, banks, documents). The only
+// deletes are delete_operation_bank and edit_operation_update(delete:true).
 //
 // Env vars (all optional, sensible defaults):
 //   TUDESAN_BASE_URL    API origin (default https://tudesancrm-cloud.fernitudela.workers.dev)
@@ -434,7 +436,7 @@ function makeDescripcionCreateTool(path) {
 
 const server = new McpServer({
   name: 'tudesancrm-cloud',
-  version: '0.3.1',
+  version: '0.5.0',
 });
 
 server.tool(
@@ -1096,6 +1098,199 @@ server.tool(
     for (const k of Object.keys(changes)) body[k] = changes[k].to;
     const result = await apiSend('PUT', `/api/operation-banks/${id}`, body);
     return jsonResult({ mode: 'applied', resource: label, applied: body, result });
+  })
+);
+
+// --- Vínculos operación-banco: alta y baja ----------------------------------
+// El Worker ya exponía POST/DELETE /api/operation-banks (la SPA los usa desde la
+// pestaña Bancos); aquí solo se envuelven con el patrón preview/confirm.
+const OPERATION_BANK_CREATE_FIELDS = new Set(['operationId', 'bankId', ...OPERATION_BANK_FIELDS]);
+const OPERATION_BANK_ESTADOS = [
+  'no_enviado', 'enviado', 'en_estudio', 'contraoferta', 'aprobado', 'denegado', 'retirado',
+];
+
+server.tool(
+  'create_operation_bank',
+  'Vincula un banco del catálogo a una operación (crea la fila de operation_banks: a qué banco se ha enviado o se va a enviar el expediente, con qué contacto, en qué estado y con qué oferta). Patrón preview/confirm. Requeridos: operationId y bankId (id de list_banks). Opcionales: contactoUsado (nombre del gestor; idealmente uno de los `contactos` del banco), estado (' +
+    OPERATION_BANK_ESTADOS.join(' | ') +
+    '; por defecto no_enviado), fechaEnvio, fechaRespuesta, fechaMaxOferta (ISO YYYY-MM-DD), tipoBonificado, pctFinanciacion, comisionApertura, bonificaciones, notas. El preview comprueba que existan la operación y el banco, avisa si el contacto no está en la ficha del banco y si ese banco YA está vinculado a la operación (el Worker lo rechaza con 409: entonces usa update_operation_bank sobre el vínculo existente). Si se crea en estado aprobado con fechaMaxOferta, la operación hereda fechaMaxOfertaBancaria si la tenía vacía.',
+  {
+    fields: z
+      .record(z.any())
+      .describe(
+        'Objeto camelCase. Requeridos operationId y bankId. Permitidos: ' +
+          [...OPERATION_BANK_CREATE_FIELDS].join(', ') + '.'
+      ),
+    confirm: z.boolean().optional(),
+  },
+  { destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  tool(async ({ fields, confirm }) => {
+    const { entry, unknown, missing } = buildCreateEntry(
+      fields, OPERATION_BANK_CREATE_FIELDS, ['operationId', 'bankId']
+    );
+    const problems = [];
+    if (unknown.length) problems.push(`Campos desconocidos: ${unknown.join(', ')}.`);
+    if (missing.length) problems.push(`Faltan campos requeridos: ${missing.join(', ')}.`);
+    if (entry.estado !== undefined && !OPERATION_BANK_ESTADOS.includes(entry.estado)) {
+      problems.push(`estado "${entry.estado}" no válido; usa uno de: ${OPERATION_BANK_ESTADOS.join(', ')}.`);
+    }
+    const { op, label: opLabel, error: opError } = await resolveOperation(entry.operationId);
+    if (entry.operationId != null && !op) {
+      problems.push(`Operación ${entry.operationId} no encontrada${opError ? ` (${opError})` : ''}.`);
+    }
+    let bank = null;
+    if (!missing.includes('bankId')) {
+      try {
+        bank = await apiJson(`/api/banks/${entry.bankId}`);
+      } catch (e) {
+        problems.push(`Banco ${entry.bankId} no encontrado (${e.message}).`);
+      }
+    }
+    let alreadyLinked = null;
+    if (op && bank) {
+      const links = await apiJson('/api/operation-banks', { operationId: entry.operationId });
+      alreadyLinked = links.find((l) => Number(l.bankId) === Number(entry.bankId)) || null;
+      if (alreadyLinked) {
+        problems.push(
+          `El banco "${bank.nombre}" ya está vinculado a esta operación (vínculo #${alreadyLinked.id}, estado ${alreadyLinked.estado}). Usa update_operation_bank en vez de crear otro.`
+        );
+      }
+    }
+    let contactoHint = null;
+    if (bank && entry.contactoUsado) {
+      const names = (bank.contactos || []).map((ct) => ct && ct.nombre).filter(Boolean);
+      const wanted = String(entry.contactoUsado).trim().toLowerCase();
+      if (names.length && !names.some((n) => n.trim().toLowerCase() === wanted)) {
+        contactoHint =
+          `contactoUsado "${entry.contactoUsado}" no coincide con ningún contacto de la ficha del banco ` +
+          `(${names.join(' | ')}). Se guarda tal cual; revísalo.`;
+      }
+    }
+    const label = `${opLabel} ↔ ${bank ? bank.nombre : `bank #${entry.bankId}`}`;
+    if (!confirm) {
+      return jsonResult({
+        mode: 'preview',
+        resource: label,
+        operationExists: !!op,
+        bankExists: !!bank,
+        alreadyLinked,
+        wouldInsert: entry,
+        unknown,
+        missing,
+        contactoHint,
+        instructions: problems.length
+          ? `${problems.join(' ')} Corrige antes de aplicar. ${PREVIEW_HINT}`
+          : PREVIEW_HINT,
+      });
+    }
+    if (problems.length) throw new Error(`${problems.join(' ')} No se crea nada.`);
+    const result = await apiSend('POST', '/api/operation-banks', entry);
+    return jsonResult({ mode: 'applied', resource: label, created: result, contactoHint });
+  })
+);
+
+server.tool(
+  'delete_operation_bank',
+  'Elimina el vínculo entre un banco y una operación (borra la fila de operation_banks: estado, contacto, fechas y oferta de ESE banco en ESA operación). No toca el banco del catálogo ni la operación. Patrón preview/confirm: sin `confirm` muestra qué vínculo se borraría; con `confirm: true` lo borra (IRREVERSIBLE). `id` = operation_banks.id (de list_operation_banks), NO el id del banco ni el de la operación. Si el vínculo ya tiene oferta o respuesta del banco, el preview avisa: normalmente es mejor pasarlo a `retirado` con update_operation_bank para conservar el historial (bank_history). Ojo: si la operación heredó `fechaMaxOfertaBancaria` de este vínculo, esa fecha NO se deshace; revísala con get_operation / update_operation.',
+  {
+    id: z.number().int().positive().describe('ID del vínculo operación-banco (operation_banks.id).'),
+    confirm: z.boolean().optional(),
+  },
+  { destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  tool(async ({ id, confirm }) => {
+    const current = await apiJson(`/api/operation-banks/${id}`);
+    const label = `operation-bank #${id} — ${current.bankNombre ?? 'banco'} (op ${current.operationId})`;
+    const summary = {
+      id: current.id,
+      operationId: current.operationId,
+      bankId: current.bankId,
+      bankNombre: current.bankNombre,
+      contactoUsado: current.contactoUsado,
+      estado: current.estado,
+      fechaEnvio: current.fechaEnvio,
+      fechaRespuesta: current.fechaRespuesta,
+      fechaMaxOferta: current.fechaMaxOferta,
+      tipoBonificado: current.tipoBonificado,
+      pctFinanciacion: current.pctFinanciacion,
+      comisionApertura: current.comisionApertura,
+    };
+    const tieneHistorial =
+      current.tipoBonificado != null ||
+      current.pctFinanciacion != null ||
+      current.comisionApertura != null ||
+      !!current.fechaRespuesta ||
+      ['en_estudio', 'contraoferta', 'aprobado', 'denegado'].includes(current.estado);
+    const warning = tieneHistorial
+      ? 'Este vínculo tiene oferta/respuesta del banco: borrarlo pierde ese historial (bank_history). Si solo quieres cerrarlo, cambia `estado` a retirado con update_operation_bank.'
+      : null;
+    if (!confirm) {
+      return jsonResult({
+        mode: 'preview',
+        resource: label,
+        wouldDelete: summary,
+        warning,
+        instructions: `Borrado IRREVERSIBLE. ${PREVIEW_HINT}`,
+      });
+    }
+    await apiSend('DELETE', `/api/operation-banks/${id}`);
+    return jsonResult({ mode: 'applied', resource: label, deleted: summary });
+  })
+);
+
+// --- Documentos: renombrado ---------------------------------------------------
+// Solo cambia `fileName` (nombre visible en Documentos y en el portal); el objeto
+// de R2 no se mueve. Misma regla que la SPA: la extensión original se conserva.
+const splitExt = (name) => {
+  const m = /^(.*?)(\.[A-Za-z0-9]{1,8})$/.exec(name || '');
+  return m ? { base: m[1], ext: m[2] } : { base: name || '', ext: '' };
+};
+
+server.tool(
+  'rename_document',
+  'Renombra un documento adjunto de una operación: solo cambia `fileName`, el nombre visible en la pestaña Documentos y en el portal del cliente (el archivo en R2 no se mueve; el id no cambia). Patrón preview/confirm. La EXTENSIÓN original se conserva siempre: si el nuevo nombre no la lleva (o lleva otra) se le pone la original. Se limpian separadores de ruta y caracteres no válidos. Úsalo para dar nombres claros y homogéneos, p. ej. "Nómina 2026-09 — Jesús Alfonso.pdf", "DNI — Jesús Alfonso.pdf", "IRPF 2025 — Jesús Alfonso.pdf", "Extractos CaixaBank abr–oct 2026.pdf". Antes de proponer nombres, mira el contenido con read_document_file si el nombre actual no lo deja claro. Para varios documentos, llama una vez por documento (primero todos los previews, luego los confirms).',
+  {
+    id: z.number().int().positive().describe('ID del documento (de list_documents).'),
+    fileName: z
+      .string()
+      .min(1, 'fileName es obligatorio')
+      .describe('Nuevo nombre visible. La extensión original se conserva aunque no la pongas.'),
+    confirm: z.boolean().optional(),
+  },
+  { destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  tool(async ({ id, fileName, confirm }) => {
+    const doc = await apiJson(`/api/documents/${id}`);
+    const current = doc.fileName || '';
+    const { ext } = splitExt(current);
+    let cleaned = String(fileName)
+      .replace(/[\\/:*?"<>|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!cleaned) throw new Error('El nuevo nombre queda vacío tras limpiar caracteres no válidos.');
+    const proposed = splitExt(cleaned);
+    let extNote = null;
+    if (ext && proposed.ext.toLowerCase() !== ext.toLowerCase()) {
+      extNote = proposed.ext
+        ? `La extensión "${proposed.ext}" se ha sustituido por la original "${ext}".`
+        : `Se ha añadido la extensión original "${ext}".`;
+      cleaned = (proposed.ext ? proposed.base : cleaned).trim() + ext;
+    } else if (ext) {
+      cleaned = proposed.base.trim() + ext;
+    }
+    const label = `document #${id} (op ${doc.operationId})`;
+    if (cleaned === current) {
+      return jsonResult({
+        mode: confirm ? 'applied' : 'preview',
+        resource: label,
+        from: current,
+        to: cleaned,
+        note: 'El nombre ya es ese; no hay nada que cambiar.',
+      });
+    }
+    if (!confirm) {
+      return jsonResult({ mode: 'preview', resource: label, from: current, to: cleaned, extNote, instructions: PREVIEW_HINT });
+    }
+    const result = await apiSend('PUT', `/api/documents/${id}`, { fileName: cleaned });
+    return jsonResult({ mode: 'applied', resource: label, from: current, to: result.fileName, extNote });
   })
 );
 

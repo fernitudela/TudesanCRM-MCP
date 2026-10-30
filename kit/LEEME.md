@@ -66,6 +66,8 @@ Puedes borrar el zip y la carpeta descomprimida cuando termine.
   Google, igual que en la web del CRM.
 - Las acciones de escritura (editar un titular, añadir una nota al histórico…)
   siempre te muestran antes qué va a cambiar y requieren tu confirmación.
-  Claude no puede crear ni borrar operaciones ni borrar nada.
+  Claude no puede crear ni borrar operaciones, ni borrar titulares, documentos
+  o bancos del catálogo (sí puede quitar un banco vinculado a una operación o
+  renombrar un adjunto, siempre previa confirmación).
 - Si pierdes el ordenador o cambias de cuenta, pide al administrador que
   desactive tu usuario: el acceso deja de funcionar al instante.

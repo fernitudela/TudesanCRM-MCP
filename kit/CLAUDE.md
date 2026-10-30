@@ -148,11 +148,13 @@ como *Connected*; si no, repite el Paso 1.
 
 ## Qué puede hacer el usuario cuando esté conectado (para orientarle)
 
-El MCP expone 32 tools sobre el CRM: lectura de operaciones, titulares,
+El MCP expone 35 tools sobre el CRM: lectura de operaciones, titulares,
 adjuntos (PDF e imágenes), histórico, bancos (catálogo e historial global), simulaciones, préstamos,
-inmuebles y plantillas, y 13 tools de escritura con patrón **preview →
-confirm** (nunca escriben sin una segunda llamada con `confirm: true`). No puede
-crear ni borrar operaciones ni borrar nada. Siempre ve exactamente lo que su
+inmuebles y plantillas, y 16 tools de escritura con patrón **preview →
+confirm** (nunca escriben sin una segunda llamada con `confirm: true`): entre
+ellas vincular/editar/desvincular bancos de una operación y renombrar adjuntos
+(desde v0.5.0). No puede crear ni borrar operaciones, ni borrar titulares,
+documentos, préstamos o bancos del catálogo. Siempre ve exactamente lo que su
 rol le permite ver en la web. Las skills instaladas se activan solas al pedir
 «prepara el expediente de…», «¿vale este CEE?», «pide tasación para…» o «¿qué banco le va bien a…?».
 

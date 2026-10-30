@@ -5,11 +5,12 @@ Servidor MCP que deja a Claude **leer y editar** TudesanCRM en la nube
 inmuebles) llamando a la API REST del Worker. Corre **en local**; lo lanza
 Claude Code/Desktop como subproceso o el agente correspondiente.
 
-La mayoría de tools son de solo lectura. Las 13 tools de escritura
+La mayoría de tools son de solo lectura. Las 16 tools de escritura
 (`create_client`, `update_client`, `update_operation`, `create_operation_update`,
-`edit_operation_update`, `create_bank`, `update_bank`, `update_operation_bank`,
-`create_loan`, `create_inmueble`, `create_simulation`, `create_document_request`,
-`upsert_doc_template`) usan un patrón
+`edit_operation_update`, `create_bank`, `update_bank`, `create_operation_bank`,
+`update_operation_bank`, `delete_operation_bank`, `create_loan`, `create_inmueble`,
+`create_simulation`, `create_document_request`, `upsert_doc_template`,
+`rename_document`) usan un patrón
 **preview / confirm** en dos pasos: sin `confirm: true` la llamada muestra el
 diff (o lo que se insertaría) y NO escribe; solo `confirm: true` aplica el
 cambio. Esto se suma al *permission prompt* que Claude Code muestra antes de
@@ -246,7 +247,7 @@ Detalles y copia manual en [`skills/README.md`](skills/README.md).
 | `bank_history` | Historial global de bancos en una llamada (`GET /api/bank-history`): todos los vínculos operación-banco visibles con el contexto de su operación + `summary` por banco (aprobadas, denegadas, ofertas, tipo/LTV típicos, días de respuesta, perfiles aceptados). Filtros `bankId`, `bank`, `estado`, `since`, `limit`. Lo usa la skill `asesor-hipotecario`. |
 | `list_doc_templates` | Plantillas HTML de documentos configuradas (una por tipo: `contrato`, `proteccion_datos`…), con su `body` y `updatedAt`. |
 
-### Escritura (13, patrón preview / confirm)
+### Escritura (16, patrón preview / confirm)
 
 Cada una se llama **dos veces**: la primera sin `confirm` para ver qué pasaría
 (NO escribe), la segunda con `confirm: true` para aplicar.
@@ -260,12 +261,15 @@ Cada una se llama **dos veces**: la primera sin `confirm` para ver qué pasaría
 | `edit_operation_update` | Edita o borra (`delete: true`) una entrada existente del timeline. |
 | `create_bank` | Crea un banco (`nombre` obligatorio + `condicionesActuales`, `notas`, `contactos`). El preview avisa si el nombre ya existe (el Worker rechaza duplicados con 409). |
 | `update_bank` | Edita un banco. `contactos` REEMPLAZA la lista completa (no hace merge). |
+| `create_operation_bank` | Vincula un banco del catálogo a una operación (fila nueva de `operation_banks`). Requeridos `operationId` y `bankId`; opcionales `contactoUsado`, `estado`, fechas y oferta. El preview comprueba que existan operación y banco, avisa si el contacto no está en la ficha del banco y si el banco ya estaba vinculado (el Worker devuelve 409). |
 | `update_operation_bank` | Edita un vínculo operación-banco (estado, contacto usado, fechas y oferta: `tipoBonificado`, `pctFinanciacion`, `comisionApertura`, `bonificaciones`, `notas`). `id` = `operation_banks.id` (de `list_operation_banks`). No cambia operationId/bankId. |
+| `delete_operation_bank` | Borra un vínculo operación-banco (irreversible). `id` = `operation_banks.id`. El preview muestra la fila y avisa si ya tenía oferta/respuesta (mejor pasarla a `retirado` para conservar el historial). No toca el banco ni la operación. |
 | `create_loan` | Crea un préstamo existente de los titulares. Requeridos `operationId` y `cuota`; opcionales `importePendiente`, `anosRestantes`, `descripcion` y `clientIds` (array de IDs de titular a los que se asigna). |
 | `create_inmueble` | Crea un inmueble en propiedad de los titulares (`descripcion` libre). Requeridos `operationId` y `descripcion`. |
 | `create_document_request` | Crea una solicitud de documentación en el checklist de una operación (el cliente la ve como pendiente de subir en el portal). Requeridos `operationId` y `descripcion`; nace `fulfilled=false` hasta que se enlaza un documento. |
 | `create_simulation` | Crea una simulación de financiación; el Worker recalcula y guarda el `snapshot` automáticamente. Requerido `operationId`. |
 | `upsert_doc_template` | Crea o reemplaza la plantilla HTML de un tipo de documento (`contrato`, `proteccion_datos`…). El preview muestra longitud actual vs propuesta y un extracto; reemplaza el cuerpo entero. El Worker valida los `%placeholders%` obligatorios. Solo admin. |
+| `rename_document` | Renombra un adjunto (`fileName`, el nombre visible en Documentos y en el portal; el archivo en R2 no se mueve). La extensión original se conserva siempre y se limpian caracteres no válidos. Para dar nombres claros a los documentos subidos por el cliente. |
 
 **Campos editables** (mirror exacto de los `UPDATABLE*` del Worker — sync
 manual; si el Worker añade un campo nuevo, hay que añadirlo también en
@@ -290,8 +294,13 @@ manual; si el Worker añade un campo nuevo, hay que añadirlo también en
 - `create_bank` / `update_bank` → `nombre`, `condicionesActuales`, `notas`,
   `contactos` (array de `{nombre*, cargo?, email?, telefono?, notas?}`).
 - `update_operation_bank` → `contactoUsado`, `estado`, `fechaEnvio`,
-  `fechaRespuesta`, `tipoBonificado`, `pctFinanciacion`, `comisionApertura`,
-  `bonificaciones`, `notas`.
+  `fechaRespuesta`, `fechaMaxOferta`, `tipoBonificado`, `pctFinanciacion`,
+  `comisionApertura`, `bonificaciones`, `notas`.
+- `create_operation_bank` → `operationId`*, `bankId`* + los mismos campos que
+  `update_operation_bank` (`estado` ∈ no_enviado | enviado | en_estudio |
+  contraoferta | aprobado | denegado | retirado; por defecto no_enviado).
+- `delete_operation_bank` → `id`* (vínculo).
+- `rename_document` → `id`*, `fileName`* (la extensión original se conserva).
 - `create_client` → mismos campos que `update_client` (requeridos `operationId`
   y `nombre`).
 - `create_loan` → `operationId`*, `cuota`*, `importePendiente`, `anosRestantes`,
@@ -305,8 +314,10 @@ manual; si el Worker añade un campo nuevo, hay que añadirlo también en
   `honorariosInmobiliariaPct`, `itpPct`, `comisionAperturaPct`,
   `expuestoCliente`. El `snapshot` lo calcula el Worker (no se pasa). (* = requerido)
 
-**No expuesto a propósito**: crear/borrar operaciones, y cualquier DELETE
-(clientes/titulares, préstamos, inmuebles, simulaciones, documentos, bancos).
+**No expuesto a propósito**: crear/borrar operaciones, y cualquier otro DELETE
+(clientes/titulares, préstamos, inmuebles, simulaciones, documentos, bancos del
+catálogo). Los únicos borrados son `delete_operation_bank` (vínculo
+operación-banco) y `edit_operation_update` con `delete: true` (entrada del timeline).
 Los bloqueos los hace el MCP (no la API): la API admite estas operaciones para la
 web del CRM.
 
@@ -338,7 +349,7 @@ update_client({ id: 97, fields: { nombre: "Marta Peñalver Mas", fechaNacimiento
 
 ## Notas
 
-- **Escritura siempre con confirmación**: las 13 tools de escritura exigen dos
+- **Escritura siempre con confirmación**: las 16 tools de escritura exigen dos
   llamadas (preview → confirm). Además Claude Code pide su propio permission
   prompt antes de cada llamada. No hay forma de escribir sin que tú lo veas.
 - Es un wrapper fino sobre la API REST del Worker; **nunca** toca D1/R2
